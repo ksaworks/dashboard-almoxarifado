@@ -16,7 +16,7 @@ from ml_predictions import (
 
 # Configuração da página
 st.set_page_config(
-    page_title="Dashboard de Análise de Peças com IA",
+    page_title="Dashboard de Análise de Almoxarifado",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -26,12 +26,51 @@ st.set_page_config(
 st.markdown("""
 <style>
     .main {background-color: #f8f9fa;}
+    
+    /* Estilização das abas (tabs) */
     .stTabs [data-baseweb="tab-list"] {gap: 8px;}
     .stTabs [data-baseweb="tab"] {
         background-color: white;
         border-radius: 8px;
         padding: 10px 20px;
+        color: #1f2937 !important;
+        font-weight: 500 !important;
     }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #f3f4f6;
+        color: #111827 !important;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #ef4444 !important;
+        color: white !important;
+    }
+    
+    /* Estilização dos cards de métrica */
+    [data-testid="stMetricValue"] {
+        color: #1f2937 !important;
+        font-weight: 600 !important;
+        font-size: 2rem !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #4b5563 !important;
+        font-weight: 500 !important;
+    }
+    
+    [data-testid="stMetricDelta"] {
+        color: #6b7280 !important;
+    }
+    
+    div[data-testid="metric-container"] {
+        background-color: white;
+        border: 1px solid #e5e7eb;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
     .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 20px;
@@ -45,6 +84,7 @@ st.markdown("""
         border-radius: 8px;
         border-left: 4px solid #2196f3;
         margin: 10px 0;
+        color: #1e40af;
     }
     .warning-box {
         background: #fff3e0;
@@ -52,6 +92,7 @@ st.markdown("""
         border-radius: 8px;
         border-left: 4px solid #ff9800;
         margin: 10px 0;
+        color: #92400e;
     }
     .success-box {
         background: #e8f5e9;
@@ -59,6 +100,7 @@ st.markdown("""
         border-radius: 8px;
         border-left: 4px solid #4caf50;
         margin: 10px 0;
+        color: #065f46;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -68,9 +110,9 @@ st.markdown("""
     <div style='text-align: center; padding: 20px; 
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                 border-radius: 15px; margin-bottom: 30px;'>
-        <h1 style='color: white; margin: 0;'>🤖 Dashboard de Análise com IA</h1>
+        <h1 style='color: white; margin: 0;'>🤖 Dashboard de Análise</h1>
         <p style='color: white; opacity: 0.9; margin: 10px 0 0 0;'>
-            Sistema Inteligente de Gestão e Manutenção com Machine Learning
+            Sistema Inteligente de Gestão, Manutenção de Almoxarifado com Machine Learning
         </p>
     </div>
 """, unsafe_allow_html=True)
@@ -80,8 +122,8 @@ with st.sidebar:
     st.markdown("### 📁 Upload de Dados")
     
     uploaded_file = st.file_uploader(
-        "Carregar arquivo Excel",
-        type=['xlsx', 'xls'],
+        "Carregar arquivo Excel ou CSV",
+        type=['xlsx', 'xls', 'csv'],
         help="Faça upload do arquivo de solicitações"
     )
     
@@ -91,7 +133,7 @@ with st.sidebar:
     st.markdown("---")
     
     # Configurações de ML
-    st.markdown("### 🤖 Configurações de IA")
+    st.markdown("### 🤖 Configurações Machine Learning")
     prediction_months = st.slider(
         "Meses para previsão",
         min_value=3,
@@ -125,11 +167,54 @@ with st.sidebar:
 def format_currency(value):
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
+def validate_dataframe(df):
+    """Valida se o DataFrame tem as colunas necessárias"""
+    required_columns = ['Mês/Ano', 'Total', 'Solicitante', '2- Máquina de destino:', 
+                       '6- Descrição da peça: ', '7- Quantidade de peças.']
+    
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    
+    if missing_columns:
+        return False, missing_columns
+    
+    return True, []
 
 # Processamento de dados
 if uploaded_file is not None:
     try:
-        df = pd.read_excel(uploaded_file)
+        # Lê o arquivo baseado na extensão
+        file_extension = uploaded_file.name.split('.')[-1].lower()
+        
+        if file_extension == 'csv':
+            # Tenta diferentes encodings para CSV
+            try:
+                df = pd.read_csv(uploaded_file, encoding='utf-8')
+            except:
+                uploaded_file.seek(0)  # Volta ao início do arquivo
+                try:
+                    df = pd.read_csv(uploaded_file, encoding='latin-1')
+                except:
+                    uploaded_file.seek(0)
+                    df = pd.read_csv(uploaded_file, encoding='iso-8859-1')
+        else:
+            df = pd.read_excel(uploaded_file)
+        
+        # Valida as colunas
+        is_valid, missing_cols = validate_dataframe(df)
+        
+        if not is_valid:
+            st.error(f"""
+                ❌ **Erro: Colunas obrigatórias não encontradas!**
+                
+                **Colunas faltando:**
+                {', '.join([f'`{col}`' for col in missing_cols])}
+                
+                **Colunas encontradas no arquivo:**
+                {', '.join([f'`{col}`' for col in df.columns.tolist()])}
+                
+                **Dica:** Verifique se o arquivo está no formato correto ou renomeie as colunas.
+            """)
+            st.stop()
         
         # Inicializa preditor ML
         predictor = MLPredictor(df)
@@ -190,6 +275,10 @@ if uploaded_file is not None:
                 'Mês/Ano': 'count',
                 'Total': 'sum'
             }).rename(columns={'Mês/Ano': 'Quantidade'})
+            
+            # Ordena cronologicamente
+            df_month['Data_Sort'] = pd.to_datetime(df_month.index, format='%m-%Y')
+            df_month = df_month.sort_values('Data_Sort')
             
             fig = px.line(df_month, y='Quantidade', 
                          title='Evolução Mensal de Solicitações',
@@ -538,6 +627,11 @@ if uploaded_file is not None:
                 st.metric("Média Mensal", format_currency(custo_mensal_medio))
             
             df_financeiro = df.groupby('Mês/Ano')['Total'].sum().reset_index()
+            
+            # Ordena cronologicamente
+            df_financeiro['Data_Sort'] = pd.to_datetime(df_financeiro['Mês/Ano'], format='%m-%Y')
+            df_financeiro = df_financeiro.sort_values('Data_Sort')
+            
             fig = px.line(df_financeiro, x='Mês/Ano', y='Total',
                          title='Evolução dos Custos Mensais',
                          markers=True)
@@ -591,6 +685,25 @@ if uploaded_file is not None:
                 </div>
             """.format(prediction_months), unsafe_allow_html=True)
     
+    except KeyError as e:
+        st.error(f"""
+            ❌ **Erro: Coluna não encontrada no arquivo!**
+            
+            A coluna **{str(e)}** não foi encontrada no arquivo enviado.
+            
+            **Colunas encontradas no seu arquivo:**
+            {', '.join([f'`{col}`' for col in df.columns.tolist()])}
+            
+            **Colunas necessárias:**
+            - `Mês/Ano`
+            - `Total`
+            - `Solicitante`
+            - `2- Máquina de destino:`
+            - `6- Descrição da peça: `
+            - `7- Quantidade de peças.`
+            
+            **Dica:** Verifique se os nomes das colunas estão corretos ou renomeie-as no arquivo.
+        """)
     except Exception as e:
         st.error(f"❌ Erro ao processar arquivo: {str(e)}")
         st.exception(e)
@@ -629,10 +742,21 @@ else:
             </div>
         """, unsafe_allow_html=True)
     
-    st.info("👆 **Faça upload de um arquivo Excel na barra lateral para começar a análise**")
+    st.info("👆 **Faça upload de um arquivo Excel (.xlsx, .xls) ou CSV (.csv) na barra lateral para começar a análise**")
     
     # Exemplo de estrutura esperada
     st.markdown("### 📋 Estrutura Esperada do Arquivo")
+    
+    st.markdown("""
+        **Colunas Obrigatórias:**
+        - `Mês/Ano` - Formato: MM-AAAA (ex: 01-2024, 02-2024)
+        - `Solicitante` - Nome do solicitante
+        - `2- Máquina de destino:` - Nome da máquina
+        - `6- Descrição da peça: ` - Descrição da peça solicitada
+        - `7- Quantidade de peças.` - Quantidade numérica
+        - `Total` - Valor total (numérico)
+        - `Entregue?` - Status da entrega (opcional)
+    """)
     
     exemplo_df = pd.DataFrame({
         'Mês/Ano': ['01-2024', '02-2024'],
@@ -645,12 +769,19 @@ else:
     })
     
     st.dataframe(exemplo_df, use_container_width=True)
+    
+    st.markdown("""
+        **💡 Dica para arquivos CSV:**
+        - Use vírgula (`,`) como separador
+        - Codificação recomendada: UTF-8
+        - Se tiver problemas com acentos, tente encoding Latin-1
+    """)
 
 # Rodapé
 st.markdown("---")
 st.markdown("""
     <div style='text-align: center; color: #666; padding: 20px;'>
-        <p><strong>Dashboard de Análise de Peças com IA</strong></p>
+        <p><strong>Dashboard de Análise de Almoxarifado</strong></p>
         <p>Desenvolvido com Python, Streamlit, Scikit-learn e Prophet</p>
         <p>🤖 Machine Learning | 📊 Data Science | 💡 Business Intelligence</p>
     </div>

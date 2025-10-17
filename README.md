@@ -40,7 +40,7 @@ Dashboard inteligente desenvolvido para análise preditiva e gestão estratégic
 | ![Scikit-learn](https://img.shields.io/badge/Scikit--learn-F7931E?style=flat&logo=scikit-learn&logoColor=white) | 1.7.2 | Machine Learning |
 | ![Prophet](https://img.shields.io/badge/Prophet-0668E1?style=flat&logo=meta&logoColor=white) | 1.1.5 | Previsões de séries temporais |
 | ![Plotly](https://img.shields.io/badge/Plotly-3F4F75?style=flat&logo=plotly&logoColor=white) | 5.17.0 | Visualizações interativas |
-| ![NumPy](https://img.shields.io/badge/NumPy-013243?style=flat&logo=numpy&logoColor=white) | 1.26.4 | Computação numérica |
+| ![NumPy](https://img.shields.io/badge/NumPy-013243?style=flat&logo=numpy&logoColor=white) | 2.3.4 | Computação numérica |
 
 ## 🚀 Como Executar
 
@@ -125,13 +125,13 @@ Mês/Ano,Solicitante,2- Máquina de destino:,6- Descrição da peça: ,7- Quanti
 ## 📈 Capturas de Tela
 
 ### Dashboard Principal
-![Dashboard](docs/screenshots/dashboard.png)
+![Dashboard](docs/screenshots/dashboard.jpg)
 
 ### Previsões com IA
-![Previsões](docs/screenshots/predictions.png)
+![Previsões](docs/screenshots/predictions.jpg)
 
 ### Análise de Anomalias
-![Anomalias](docs/screenshots/anomalies.png)
+![Anomalias](docs/screenshots/anomalies.jpg)
 
 ## 🔧 Configurações Avançadas
 

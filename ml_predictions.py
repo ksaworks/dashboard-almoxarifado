@@ -5,6 +5,14 @@ Dashboard de Análise de Peças
 
 import pandas as pd
 import numpy as np
+
+# Patch de compatibilidade para Prophet com NumPy 2.0+
+# O Prophet usa np.float_ e np.int_ que foram removidos no NumPy 2.0
+if not hasattr(np, 'float_'):
+    np.float_ = np.float64
+if not hasattr(np, 'int_'):
+    np.int_ = np.int64
+
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -21,9 +29,22 @@ class MLPredictor:
     """Classe para previsões com Machine Learning"""
     
     def __init__(self, df):
-        self.df = df
+        # Cria uma cópia do dataframe para não modificar o original
+        self.df = df.copy()
         self.models = {}
         self.predictions = {}
+        
+        # Garante que colunas numéricas estejam no tipo correto
+        self._prepare_numeric_columns()
+    
+    def _prepare_numeric_columns(self):
+        """Converte colunas numéricas para o tipo correto"""
+        # Lista de colunas que devem ser numéricas
+        numeric_columns = ['Total', '7- Quantidade de peças.']
+        
+        for col in numeric_columns:
+            if col in self.df.columns:
+                self.df[col] = pd.to_numeric(self.df[col], errors='coerce').fillna(0)
         
     def prepare_temporal_data(self):
         """Prepara dados temporais para previsão"""
@@ -33,8 +54,18 @@ class MLPredictor:
             'Total': 'sum'
         }).rename(columns={'Mês/Ano': 'Quantidade'})
         
-        # Converte para datetime
-        df_month['Data'] = pd.to_datetime(df_month.index, format='%m-%Y')
+        # Converte para datetime de forma robusta
+        # Tenta diferentes formatos comuns
+        try:
+            df_month['Data'] = pd.to_datetime(df_month.index, format='%m-%Y')
+        except:
+            try:
+                df_month['Data'] = pd.to_datetime(df_month.index, format='%m/%Y')
+            except:
+                # Formato inferido automaticamente
+                df_month['Data'] = pd.to_datetime(df_month.index, infer_datetime_format=True)
+        
+        # Ordena cronologicamente (do mais antigo para o mais novo)
         df_month = df_month.sort_values('Data')
         df_month['Mes_Num'] = range(len(df_month))
         
