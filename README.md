@@ -125,13 +125,13 @@ Mês/Ano,Solicitante,2- Máquina de destino:,6- Descrição da peça: ,7- Quanti
 ## 📈 Capturas de Tela
 
 ### Dashboard Principal
-![Dashboard](docs/screenshots/dashboard.jpg)
+![Dashboard](docs/screenshots/dashboard.png)
 
 ### Previsões com IA
-![Previsões](docs/screenshots/predictions.jpg)
+![Previsões](docs/screenshots/predictions.png)
 
 ### Análise de Anomalias
-![Anomalias](docs/screenshots/anomalies.jpg)
+![Anomalias](docs/screenshots/anomalies.png)
 
 ## 🔧 Configurações Avançadas
 
